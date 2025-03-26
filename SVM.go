@@ -10,7 +10,6 @@ import (
 )
 
 func main() {
-	// Load dataset (Use AIKOSHA dataset if available)
 	data, err := base.ParseCSVToInstances("dataset.csv", true)
 	if err != nil {
 		fmt.Println("Error loading dataset:", err)
