@@ -40,7 +40,7 @@ func main() {
 	// Evaluate the model
 	confusionMat, err := evaluation.GetConfusionMatrix(testData, predictions)
 	if err != nil {
-		fmt.Println("Error evaluating model:", err)
+		fmt.Println("Error evaluating model------>:", err)
 		return
 	}
 	fmt.Println(evaluation.GetSummary(confusionMat))

@@ -41,7 +41,7 @@ func NewLinearRegression() *LinearRegression {
 	if err != nil {
 		log.Fatal(errors.Wrap(err, "Gradient computation failed"))
 	}
-	fmt.Println("the grades", grads)
+	fmt.Println("the grades:", grads)
 
 	// Create the VM (Tape Machine for execution)
 	vm := gorgonia.NewTapeMachine(g)
