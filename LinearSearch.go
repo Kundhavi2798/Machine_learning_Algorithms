@@ -2,96 +2,36 @@ package main
 
 import (
 	"fmt"
-	"log"
-
-	"github.com/pkg/errors"
-	"gorgonia.org/gorgonia"
-	"gorgonia.org/tensor"
+	"os"
+	"strings"
 )
 
-// LinearRegression represents a simple linear regression model: Y = W*X + B
-type LinearRegression struct {
-	g      *gorgonia.ExprGraph
-	w, b   *gorgonia.Node
-	x, y   *gorgonia.Node
-	pred   *gorgonia.Node
-	vm     gorgonia.VM
-	solver gorgonia.Solver
-}
-
-func NewLinearRegression() *LinearRegression {
-	g := gorgonia.NewGraph()
-
-	// Define weights and bias
-	w := gorgonia.NewScalar(g, gorgonia.Float32, gorgonia.WithName("w"), gorgonia.WithInit(gorgonia.GlorotU(1.0)))
-	b := gorgonia.NewScalar(g, gorgonia.Float32, gorgonia.WithName("b"), gorgonia.WithInit(gorgonia.Zeroes()))
-
-	// Define input and output
-	x := gorgonia.NewMatrix(g, gorgonia.Float32, gorgonia.WithShape(5, 1), gorgonia.WithName("x"))
-	y := gorgonia.NewMatrix(g, gorgonia.Float32, gorgonia.WithShape(5, 1), gorgonia.WithName("y"))
-
-	// Define prediction formula: Y_pred = W*X + B
-	pred := gorgonia.Must(gorgonia.Add(gorgonia.Must(gorgonia.Mul(x, w)), b))
-
-	// Define Mean Squared Error loss
-	loss := gorgonia.Must(gorgonia.Mean(gorgonia.Must(gorgonia.Square(gorgonia.Must(gorgonia.Sub(y, pred))))))
-
-	// Compute gradients
-	grads, err := gorgonia.Grad(loss, w, b)
-	if err != nil {
-		log.Fatal(errors.Wrap(err, "Gradient computation failed"))
-	}
-	fmt.Println("the grades:", grads)
-
-	// Create the VM (Tape Machine for execution)
-	vm := gorgonia.NewTapeMachine(g)
-
-	// Use a valid solver (Adam Optimizer)
-	solver := gorgonia.NewAdamSolver(gorgonia.WithLearnRate(0.01))
-
-	return &LinearRegression{
-		g:      g,
-		w:      w,
-		b:      b,
-		x:      x,
-		y:      y,
-		pred:   pred,
-		vm:     vm,
-		solver: solver,
-	}
-}
-
-func (lr *LinearRegression) Train(X, Y tensor.Tensor, epochs int) {
-	for i := 0; i < epochs; i++ {
-		// Load data
-		gorgonia.Let(lr.x, X)
-		gorgonia.Let(lr.y, Y)
-
-		// Forward pass
-		if err := lr.vm.RunAll(); err != nil {
-			log.Fatal(errors.Wrap(err, "Failed to run VM"))
+func LinearSearch(arr []string, target string) int {
+	for i, value := range arr {
+		if strings.Contains(value, target) {
+			return i
 		}
-
-		// Backpropagation using solver
-		if err := lr.solver.Step(gorgonia.NodesToValueGrads([]*gorgonia.Node{lr.w, lr.b})); err != nil {
-			log.Fatal(errors.Wrap(err, "Solver step failed"))
-		}
-
-		// Reset VM for next iteration
-		lr.vm.Reset()
 	}
+	return -1
 }
 
 func main() {
-	// Sample data (5 samples)
-	XData := tensor.New(tensor.WithBacking([]float32{1, 2, 3, 4, 5}), tensor.WithShape(5, 1))
-	YData := tensor.New(tensor.WithBacking([]float32{2, 4, 6, 8, 10}), tensor.WithShape(5, 1)) // Y = 2X (ideal linear relation)
+	filePath := "/home/kundhavk/Machine_learning_Algorithms/shrug-pc11state-poly-shp/state.prj"
 
-	// Initialize and train model
-	model := NewLinearRegression()
-	model.Train(XData, YData, 1000) // Corrected call
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		fmt.Println("Error reading file:", err)
+		return
+	}
 
-	// Print trained parameters
-	fmt.Println("Trained Weight:", model.w.Value())
-	fmt.Println("Trained Bias:", model.b.Value())
+	lines := strings.Split(string(data), "\n")
+	target := "WGS_1984"
+
+	result := LinearSearch(lines, target)
+
+	if result != -1 {
+		fmt.Printf("Element '%s' found at line %d\n", target, result+1)
+	} else {
+		fmt.Printf("Element '%s' not found in the file\n", target)
+	}
 }

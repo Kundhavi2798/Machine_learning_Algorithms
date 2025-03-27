@@ -3,45 +3,48 @@ package main
 import (
 	"fmt"
 	"os"
-
-	"github.com/sjwhitworth/golearn/base"
-	"github.com/sjwhitworth/golearn/evaluation"
-	"github.com/sjwhitworth/golearn/trees"
+	"strings"
 )
 
+type DecisionNode struct {
+	Question    string
+	TrueBranch  *DecisionNode
+	FalseBranch *DecisionNode
+	Result      string
+}
+
+func Classify(node *DecisionNode, input string) string {
+	if node.Result != "" {
+		return node.Result
+	}
+
+	if strings.Contains(input, node.Question) {
+		return Classify(node.TrueBranch, input)
+	}
+	return Classify(node.FalseBranch, input)
+}
+
 func main() {
-	// Load dataset (Use AIKOSHA dataset if available)
-	data, err := base.ParseCSVToInstances("dataset.csv", true)
+	filePath := "/home/kundhavk/Machine_learning_Algorithms/shrug-pc11state-poly-shp/state.prj"
+
+	data, err := os.ReadFile(filePath)
 	if err != nil {
-		fmt.Println("Error loading dataset:", err)
-		os.Exit(1)
-	}
-
-	// Train-Test Split
-	trainData, testData := base.InstancesTrainTestSplit(data, 0.7)
-
-	// Create Decision Tree Classifier
-	tree := trees.NewID3DecisionTree(0.6)
-
-	// Train the model
-	err = tree.Fit(trainData)
-	if err != nil {
-		fmt.Println("Error training model:", err)
+		fmt.Println("Error reading file:", err)
 		return
 	}
 
-	// Predict on test data
-	predictions, err := tree.Predict(testData)
-	if err != nil {
-		fmt.Println("Error predicting:", err)
-		return
+	content := string(data)
+
+	tree := &DecisionNode{
+		Question: "GCS_WGS_1984",
+		TrueBranch: &DecisionNode{
+			Result: "This is a WGS84 coordinate system.",
+		},
+		FalseBranch: &DecisionNode{
+			Result: "This is NOT a WGS84 coordinate system.",
+		},
 	}
 
-	// Evaluate the model
-	confusionMat, err := evaluation.GetConfusionMatrix(testData, predictions)
-	if err != nil {
-		fmt.Println("Error evaluating model------>:", err)
-		return
-	}
-	fmt.Println(evaluation.GetSummary(confusionMat))
+	result := Classify(tree, content)
+	fmt.Println(result)
 }

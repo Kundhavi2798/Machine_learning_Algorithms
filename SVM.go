@@ -3,45 +3,55 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 
-	"github.com/sjwhitworth/golearn/base"
-	"github.com/sjwhitworth/golearn/evaluation"
-	"github.com/sjwhitworth/golearn/knn"
+	"gonum.org/v1/gonum/mat"
 )
 
+type SVMModel struct {
+	Weights *mat.VecDense
+	Bias    float64
+}
+
+func (svm *SVMModel) Predict(features *mat.VecDense) float64 {
+	var result mat.VecDense
+	result.MulElemVec(svm.Weights, features)
+	score := mat.Sum(&result) + svm.Bias
+
+	if score >= 0 {
+		return 1
+	}
+	return -1
+}
+
 func main() {
-	data, err := base.ParseCSVToInstances("dataset.csv", true)
+	filePath := "/home/kundhavk/Machine_learning_Algorithms/shrug-pc11state-poly-shp/state.prj"
+
+	data, err := os.ReadFile(filePath)
 	if err != nil {
-		fmt.Println("Error loading dataset:", err)
-		os.Exit(1)
-	}
-
-	// Train-Test Split
-	trainData, testData := base.InstancesTrainTestSplit(data, 0.7)
-
-	// Create SVM Classifier (using kNN as an example)
-	svm := knn.NewKnnClassifier("euclidean", "linear", 2)
-
-	// Train model
-	err = svm.Fit(trainData)
-	if err != nil {
-		fmt.Println("Error training model:", err)
+		fmt.Println("Error reading file:", err)
 		return
 	}
 
-	// Predict
-	predictions, err := svm.Predict(testData)
-	if err != nil {
-		fmt.Println("Error predicting:", err)
-		return
+	content := string(data)
+
+	features := mat.NewVecDense(1, nil)
+	if strings.Contains(content, "GCS_WGS_1984") {
+		features.SetVec(0, 1.0)
+	} else {
+		features.SetVec(0, -1.0)
 	}
 
-	// Evaluate the model
-	confusionMat, err := evaluation.GetConfusionMatrix(testData, predictions)
-	if err != nil {
-		fmt.Println("Error evaluating model:", err)
-		return
+	svm := SVMModel{
+		Weights: mat.NewVecDense(1, []float64{1.0}),
+		Bias:    0.0,
 	}
 
-	fmt.Println(evaluation.GetSummary(confusionMat))
+	prediction := svm.Predict(features)
+
+	if prediction == 1 {
+		fmt.Println("SVM Prediction: This is a WGS84 coordinate system.")
+	} else {
+		fmt.Println("SVM Prediction: This is NOT a WGS84 coordinate system.")
+	}
 }
